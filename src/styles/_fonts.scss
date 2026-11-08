@@ -1,0 +1,12 @@
+// Local Google Fonts distributions; licenses are in public/fonts.
+@each $family, $file in ('Inter': 'inter', 'Open Sans': 'open-sans', 'Syncopate': 'syncopate') {
+  @each $weight, $suffix in (400: 'regular', 700: 'bold') {
+    @font-face {
+      font-family: $family;
+      font-style: normal;
+      font-weight: $weight;
+      font-display: swap;
+      src: url('/fonts/#{$file}-#{$suffix}.ttf') format('truetype');
+    }
+  }
+}

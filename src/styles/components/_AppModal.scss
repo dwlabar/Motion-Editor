@@ -1,0 +1,160 @@
+// -----------------------------------------------------------------------------
+// _AppModal.scss
+// -----------------------------------------------------------------------------
+
+.app-modal {
+  --modal-surface: #1e1e1e;
+  --modal-border: #444444;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(var(--color-overlay-rgb), 0.55);
+  backdrop-filter: blur(2px);
+  color: var(--color-text-control);
+}
+
+.app-modal__dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(852px, 100%);
+  max-height: calc(100dvh - 32px);
+  min-width: 0;
+  overflow: hidden;
+  border: 0;
+  // Retain the former border's space without drawing a perimeter frame.
+  padding: 1px;
+  background: var(--modal-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--color-on-surface-rgb), 0.16),
+    inset 0 -2px 0 rgba(var(--color-overlay-rgb), 0.5);
+}
+
+.app-modal__header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--color-border-default);
+  box-shadow: inset 0 -1px 0 rgba(var(--color-overlay-rgb), 0.75);
+  background: #191919;
+}
+
+.app-modal__title {
+  font-size: 20px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.app-modal :is(.app-modal__title, .file-panel__section-title, .export-panel__title, .export-panel__label, .app-modal__about h2) {
+  text-shadow: 0 1px 1px rgba(var(--color-overlay-rgb), 0.85);
+}
+
+.app-modal__close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--color-surface-timeline-ruler);
+  border-radius: 0;
+  background: var(--color-surface-timeline-row);
+  color: inherit;
+  cursor: pointer;
+
+  svg { width: 16px; height: 16px; }
+}
+
+.app-modal__body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.app-modal :is(.file-panel__btn, .export-panel__btn, .svg-importer button) {
+  min-width: 0;
+  min-height: 38px;
+  height: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--modal-border);
+  border-radius: 0;
+  background: var(--color-surface-input);
+  color: inherit;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+  text-transform: uppercase;
+  text-shadow: none;
+  box-shadow: none;
+  cursor: pointer;
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+// Shared pillow emboss changes only paint, keeping control geometry intact.
+.app-modal :is(.file-panel__btn, .export-panel__btn, .svg-importer button) {
+  border-color: #303030;
+  background: #191919;
+  box-shadow:
+    inset 0 1px 0 rgba(var(--color-on-surface-rgb), 0.12),
+    inset 0 -2px 0 rgba(var(--color-overlay-rgb), 0.4);
+}
+
+// The close control sits flush, with a recessed rim and no raised shadow.
+.app-modal .app-modal__close {
+  border-color: #090909;
+  background: #111111;
+  box-shadow:
+    inset 0 1px 0 rgba(var(--color-overlay-rgb), 0.4),
+    0 1px 0 rgba(var(--color-on-surface-rgb), 0.08);
+}
+
+.app-modal :is(.app-modal__close, .file-panel__btn, .export-panel__btn, .svg-importer button):not(:disabled):hover {
+  background: var(--color-surface-menu-hover);
+  border-color: var(--color-border-button-hover);
+}
+
+.app-modal :is(button, input, textarea):focus-visible {
+  outline: 2px solid var(--color-accent-cyan);
+  outline-offset: 2px;
+}
+
+.app-modal .svg-importer {
+  padding: 24px;
+  border-bottom: 1px solid var(--color-border-default);
+  text-align: left;
+
+  button { width: min(276px, 100%); }
+}
+
+// Horizontal seams use the same top-down light as the header, without side glow.
+.app-modal :is(.svg-importer, .file-panel__section:not(:last-child)) {
+  box-shadow: inset 0 -1px 0 rgba(var(--color-overlay-rgb), 0.45);
+}
+
+.app-modal .export-panel__output {
+  box-shadow: 0 -1px 0 rgba(var(--color-overlay-rgb), 0.45);
+}
+
+.app-modal__about {
+  padding: 24px;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+
+  h2 { margin: 0 0 12px; font-size: 14px; text-transform: uppercase; }
+  p { margin: 0; }
+}
+
+@media (max-width: 480px) {
+  .app-modal__header { padding: 16px; }
+  .app-modal .svg-importer, .app-modal__about { padding: 20px 16px; }
+}

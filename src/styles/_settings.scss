@@ -1,0 +1,80 @@
+// =============================================================================
+// DESIGN TOKENS
+// =============================================================================
+
+:root {
+  --color-app-background: #151515;
+  --color-surface: #161616;
+  --color-surface-raised: #161616;
+  --color-surface-timeline-row: #111111;
+  --color-surface-timeline-ruler: #000000;
+  --color-surface-stage: #151515;
+  --color-surface-input: #141414;
+  --color-surface-button: #212121;
+  --color-surface-button-hover: #3d3d3d;
+  --color-surface-menu-hover: #292929;
+  --color-surface-layer-selected: #25353d;
+  --color-surface-track-selected: #1d3039;
+  --color-surface-svg-editor: #000000;
+  --color-surface-modal-rgb: 18, 18, 18;
+
+  --color-border-default: #303030;
+  --color-border-subtle: #252525;
+  --color-border-input: #1d1d1d;
+  --color-border-button: #303030;
+  --color-border-button-hover: #5c5c5c;
+  --color-border-svg-editor: #333333;
+  --color-border-keyframe-selected: #d9f5ff;
+
+  --color-text-primary: #f4f7fa;
+  --color-text-strong: #ffffff;
+  --color-text-on-surface: #ffffff;
+  --color-text-timeline: #ffffff;
+  --color-text-timeline-selected: #d5effa;
+  --color-text-button: #edf2f6;
+  --color-text-inspector: #e8edf2;
+  --color-text-input: #898989;
+  --color-text-control: #d5d5d5;
+  --color-text-value: #eeeeee;
+  --color-text-muted: #aaaaaa;
+  --color-text-subtle: #7b7b7b;
+  --color-text-unit: #888888;
+  --color-text-empty: #858585;
+  --color-text-disabled: #666666;
+  --color-text-menu-disabled: #626262;
+  --color-text-brand: #ffffff;
+  --color-text-track: #5c5c5c;
+
+  --color-accent-cyan: #43c7f4;
+  --color-transparent: transparent;
+
+  --color-importer-button-start: #5c5c5c;
+  --color-importer-button-end: #3b3b3b;
+  --color-text-importer-button: #efefef;
+
+  // Figma Desktop 1:49 surfaces and geometry. Selection accents remain explicit.
+  --color-topbar-start: #242424;
+  --color-topbar-end: #1c1c1c;
+  --color-track-label: #0c0c0c;
+  --color-track-label-border: #1c1c1c;
+  --color-layer-border: #0a0a0a;
+  --color-layer-highlight: #202020;
+  --color-ruler-label-rgb: 53, 53, 53;
+  --color-stage-gradient-rgb: 30, 30, 30;
+  --color-playhead: #00c8ff;
+  --color-playhead-end: #003645;
+  --color-playhead-highlight: #afeeff;
+
+  --color-overlay-rgb: 0, 0, 0;
+  --color-on-surface-rgb: 255, 255, 255;
+  --color-accent-cyan-rgb: 67, 199, 244;
+  --color-keyframe-glow-rgb: 48, 202, 255;
+  --color-danger-rgb: 255, 80, 80;
+
+  --font-ui: Inter, system-ui, sans-serif;
+  --font-navigation: 'Open Sans', system-ui, sans-serif;
+  --font-brand: Syncopate, system-ui, sans-serif;
+  --inspector-width: 320px;
+  --timeline-label-width: 304px;
+  --timeline-endpoint-gutter: 32px;
+}

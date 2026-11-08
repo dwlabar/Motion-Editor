@@ -1,0 +1,136 @@
+// =============================================================================
+// APP SHELL
+// =============================================================================
+
+@use './settings';
+@use './fonts';
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-width: 0;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--color-app-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-ui);
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 540px;
+  background: var(--color-app-background);
+}
+
+.editor-layout {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) var(--inspector-width);
+
+  &__primary {
+    display: grid;
+    min-width: 0;
+    min-height: 0;
+    grid-template-rows: minmax(240px, 104fr) minmax(240px, 66fr);
+  }
+}
+
+.stage-panel {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: var(--color-surface-stage);
+  background-image: url('/figma/stage-background.svg'),
+    linear-gradient(rgba(var(--color-stage-gradient-rgb), 0.7), rgba(var(--color-overlay-rgb), 0.7)),
+    linear-gradient(rgba(var(--color-overlay-rgb), 0.2), rgba(var(--color-overlay-rgb), 0.2));
+  background-size: 42px 42px, 100% 100%, 100% 100%;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  &::before {
+    top: 0;
+    height: 23px;
+    background: url('/figma/shadow-top.png') center top / 100% 100%;
+  }
+
+  &::after {
+    bottom: 0;
+    height: 2px;
+    background: url('/figma/divider-bottom.png') center / 100% 100%;
+  }
+
+  &__content {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    overflow: auto;
+    padding: 23px 16px 2px;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.svg-importer {
+  text-align: center;
+
+  button {
+    min-width: 132px;
+    height: 36px;
+    padding: 10px 29px;
+    border: 1px solid rgba(var(--color-overlay-rgb), 0.28);
+    background: linear-gradient(var(--color-importer-button-start), var(--color-importer-button-end));
+    color: var(--color-text-importer-button);
+    cursor: pointer;
+    font-family: var(--font-navigation);
+    font-size: 12px;
+    line-height: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    text-shadow: 0 1px rgba(var(--color-overlay-rgb), 0.25);
+    box-shadow: inset 0 1px 1.1px rgba(var(--color-on-surface-rgb), 0.38);
+  }
+
+  p {
+    margin: 10px 0 0;
+    color: var(--color-text-muted);
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 1000px) {
+  :root {
+    --inspector-width: 260px;
+    --timeline-label-width: 220px;
+  }
+}
+
+@media (max-width: 700px) {
+  :root { --timeline-label-width: 170px; }
+
+  .app-shell { height: auto; min-height: 100dvh; }
+  .editor-layout { grid-template-columns: minmax(0, 1fr); }
+  .editor-layout__primary { height: 720px; }
+}

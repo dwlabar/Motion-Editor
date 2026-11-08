@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="logo-gsapsvga" width="70" height="70" viewBox="-7 -7 84 84">
+  <rect x="-7" y="-7" width="84" height="84" rx="12" fill="#222" />
+  <g id="logo" fill="#fff">
+    <path id="logo-frame" d="m34.99993 0-34.99993 34.99993 34.99993 34.99993 34.99993-34.99993Zm1.49965 5.49941 27.99984 28.00036h-27.99984Zm-2.99981.00051v27.99985h-27.99985Zm-28.00036 30.99966h28.00036v27.99984Zm31.00017 0h28.00036l-28.00036 28.00036Z"/>
+    <path id="logo-diamond-TL" d="m30.49979 16.99979-13.5 13.5h13.5Z"/>
+    <path id="logo-diamond-TR" d="m39.49979 16.99979 13.5 13.5h-13.5Z"/>
+    <path id="logo-diamond-BL" d="m30.49979 52.99979-13.5-13.5h13.5Z"/>
+    <path id="logo-diamond-BR" d="m39.49979 52.99979 13.5-13.5h-13.5Z"/>
+  </g>
+</svg>

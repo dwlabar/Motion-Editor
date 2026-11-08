@@ -1,0 +1,17 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Button_Keyframe" clip-path="url(#clip0_0_247)">
+<rect width="22" height="22" fill="#232323"/>
+<path id="Button Border Gradient" d="M0 1H1V21H21V1H22V22H0V1Z" fill="url(#paint0_linear_0_247)"/>
+<path id="Button Highlight Top" d="M0 1V0H22V1H0Z" fill="#303030"/>
+<path id="Icon - Keyframe" fill-rule="evenodd" clip-rule="evenodd" d="M11 4L4 11L11 18L18 11L11 4ZM11 6L6 11L11 16L16 11L11 6Z" fill="#747474"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_247" x1="10.5" y1="1" x2="10.5" y2="21" gradientUnits="userSpaceOnUse">
+<stop stop-color="#1F1F1F" stop-opacity="0"/>
+<stop offset="1" stop-color="#1A1A1A"/>
+</linearGradient>
+<clipPath id="clip0_0_247">
+<rect width="22" height="22" fill="white"/>
+</clipPath>
+</defs>
+</svg>

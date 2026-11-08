@@ -1,0 +1,73 @@
+// -----------------------------------------------------------------------------
+// _ExportPanel.scss
+// -----------------------------------------------------------------------------
+
+.export-panel { padding: 24px; }
+
+.export-panel__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: 16px 24px;
+}
+
+.export-panel__title {
+  grid-column: 1 / -1;
+  font-size: 14px;
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.export-panel__control {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  min-width: 0;
+}
+
+.export-panel__label { font-size: 12px; text-transform: uppercase; }
+
+.export-panel__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--modal-border);
+  background: var(--color-surface-input);
+  color: inherit;
+  border-radius: 0;
+
+  &:disabled { opacity: 0.5; }
+}
+
+.export-panel__spacer { display: none; }
+.export-panel__status { font-size: 12px; text-transform: uppercase; overflow-wrap: anywhere; }
+
+.export-panel__output {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--color-border-default);
+}
+
+.export-panel__textarea {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 12px;
+  border: 1px solid var(--modal-border);
+  background: var(--color-surface-input);
+  color: inherit;
+  border-radius: 0;
+}
+
+@media (max-width: 480px) {
+  .export-panel { padding: 20px 16px; }
+  .export-panel__row { grid-template-columns: minmax(0, 1fr); }
+}
