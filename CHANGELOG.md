@@ -2,6 +2,17 @@
 
 Application releases use pre-1.0 Semantic Versioning. Project-file schema versions are independent.
 
+## Motion Editor 0.1.0 — unreleased
+
+- T01 foundation: rename the application and package to Motion Editor, retain existing UI and icon artwork, and add the local Motion Engine dependency.
+- Isolate autosave under `motion-editor:last-session:v1` without migrating GSAP Editor storage.
+- Document migration boundaries; GSAP preview, path behavior, exports, and project schema version 1 remain unchanged.
+- T01 approved by the user on 2026-11-08.
+
+## Inherited GSAP Animation Editor release history
+
+The entries below describe the original project, not Motion Editor releases or acceptance.
+
 ## 0.2.1 — 2026-09-15
 
 Figma UI fidelity pass. Manually accepted by the user on 2026-09-22, including all current TopBar, Inspector, Timeline, and other v0.2.1 changes and the user's manual SCSS refinements.

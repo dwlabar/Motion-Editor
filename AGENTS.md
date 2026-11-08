@@ -1,8 +1,18 @@
-# GSAP SVG Animation Editor
+# Motion Editor
 
 ## Purpose
 
-This repository contains a browser-based, timeline-oriented SVG animation editor. Users import an SVG, select its shapes, author tracks and keyframes, preview the result with GSAP, persist a project, and generate GSAP or React code.
+Motion Editor is a browser-based, timeline-oriented SVG animation editor derived from the GSAP Animation Editor baseline. Users import an SVG, select its shapes, author tracks and keyframes, preview the result with GSAP, persist a project, and generate GSAP or React code.
+
+## Project boundaries and migration status
+
+- Modify only this repository. `../motion-engine` and `../gsap-animation-editor` are read-only reference projects.
+- Application version is 0.1.0; project JSON and animation-model schema remain version 1.
+- T01 adds Motion Engine through `file:../motion-engine` and isolates branding and autosave. It does not replace the runtime.
+- GSAP remains responsible for preview, path interpolation, and GSAP/React exports until later migration tasks explicitly replace them. Keep its dependencies and runtime code operational.
+- Motion Engine is the standalone animation library; Motion Editor owns React UI, authoring, selection, SVG import, persistence, and integration. Do not add editor concerns to the engine.
+- Autosave uses `motion-editor:last-session:v1`; never read, migrate, clear, or write the original GSAP Editor storage.
+- Preserve existing UI, icon artwork, code comments, and behavior. No compatibility layers or unrelated refactoring during the migration.
 
 ## Repository map
 
@@ -62,7 +72,7 @@ Run the relevant checks after source changes. Explain exactly what changed and w
 ### Branching
 
 - Start meaningful work from current clean local `master` on a dedicated branch. Inspect the actual branch, status, history, and relationship to `origin/master` first; stop on unexpected or unrelated changes.
-- Use `feature/<version>_<description>`, `bug/<version>_<description>`, or `task/<version>_<description>`, with hyphenated descriptions. Examples: `feature/0.2.0_svg-vertex-path-foundation`, `bug/0.1.1_timeline-drag-release`, and `task/0.1.0_versioning-baseline`.
+- Use the explicitly requested branch name. Motion Editor task branches use `codex/<version>-tNN-<description>`, including `codex/0.1.0-t01-project-foundation`.
 - Do not perform substantial feature, bug, refactor, or infrastructure work directly on `master`. Small emergency/trivial exceptions require explicit user approval.
 
 ### Review and integration

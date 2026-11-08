@@ -138,7 +138,7 @@ import { useDocumentFit } from './hooks/useDocumentFit'
 import { useNotifications } from './hooks/useNotifications'
 import NotificationViewport from './components/NotificationViewport'
 
-const LAST_SESSION_STORAGE_KEY = 'gsap-svg-editor:last-session:v1'
+const LAST_SESSION_STORAGE_KEY = 'motion-editor:last-session:v1'
 const AUTOSAVE_DEBOUNCE_MS = 800
 
 function createEmptyAnimationModel() {
@@ -1127,8 +1127,8 @@ function App() {
           ) : null}
           {activeModal === 'about' ? (
             <div className="app-modal__about">
-              <h2>GSAP Animate</h2>
-              <p>Import SVG artwork, animate shapes and path anchors, and export GSAP or React code.</p>
+              <h2>Motion Editor</h2>
+              <p>Create SVG animations with Motion Editor: import artwork, animate shapes and path anchors, and export GSAP or React code.</p>
             </div>
           ) : null}
         </AppModal>

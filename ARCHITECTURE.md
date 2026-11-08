@@ -1,8 +1,10 @@
 # Architecture
 
+Motion Editor retains the imported GSAP implementation during T01. The local `motion-engine` dependency is available for later migration tasks; it is not yet used for playback or export. The sibling engine and original editor projects are read-only.
+
 ## Core model
 
-The application release version is `0.2.1`, recorded in npm package metadata and release documentation. Project JSON and the animation model retain schema version `1`. Application releases do not change the schema version unless a separate format migration is deliberately designed.
+The application release version is `0.1.0`, recorded in npm package metadata and release documentation. Project JSON and the animation model retain schema version `1`. Application releases do not change the schema version unless a separate format migration is deliberately designed.
 
 The animation model is the source of truth. It is a serializable version 1 object with `id`, `label`, `duration`, and `tracks`. Each track is identified by a `targetId` and `property`, and contains ordered keyframes with a time, value, and optional easing. The current editor supports `position`, `opacity`, `rotation`, `scale`, and `path`. Path values are SVG `d` strings; the schema remains version `1`.
 

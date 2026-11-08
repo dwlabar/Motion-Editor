@@ -56,7 +56,7 @@ function TopBar({
       </div>
 
       <div className="top-bar__right">
-        <div className="top-bar__brand">GSAP<strong>ANIMATE</strong></div>
+        <div className="top-bar__brand">Motion <strong>Editor</strong></div>
       </div>
     </div>
   )
