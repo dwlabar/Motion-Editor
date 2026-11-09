@@ -1,10 +1,10 @@
 # Motion Editor
 
-**0.1.0 — unreleased, T01 foundation complete.** A browser-based SVG animation editor derived from GSAP Animation Editor, being migrated to the standalone Motion Engine library.
+**0.1.0 — unreleased, T02 complete.** A browser-based SVG animation editor derived from GSAP Animation Editor, being migrated to the standalone Motion Engine library.
 
 ## Migration status and boundaries
 
-T01 establishes package identity, the local engine dependency, branding, and independent autosave. Motion Engine is available but is not yet connected to preview or export. GSAP remains operational for playback, path interpolation, and GSAP/React code generation. Existing UI, icon artwork, behavior, and project JSON/model schema version **1** are preserved.
+T01 establishes package identity, the local engine dependency, branding, and independent autosave. T02 connects Motion Engine to timeline evaluation, playback, scrubbing, looping, and SVG preview. GSAP remains installed for stage authoring, MorphSVG path editing, and GSAP/React code generation. Existing UI, icon artwork, and project JSON/model schema version **1** are preserved. The remaining authoring integration conflicts are recorded in [T02 verification](DOCS/T02-VERIFICATION.md).
 
 - This repository owns React UI, SVG import, selection, tracks/keyframes, persistence, and integration.
 - `../motion-engine` provides the standalone library through `file:../motion-engine` and is read-only during editor tasks.
@@ -30,7 +30,7 @@ npm.cmd run preview
 1. Open **File** to import SVG artwork or load project JSON. Sample artwork is in `public/`.
 2. Select an object on the stage or timeline. Add Position, Opacity, Rotation, Scale, or eligible Path tracks.
 3. Move the playhead and add keyframes with the diamond button or **K**. Edit selected keyframes in Properties; drag objects or existing path anchors on the stage.
-4. Set duration, scrub, and use Play/Pause, Restart, and Loop to preview with GSAP.
+4. Set duration, scrub, and use Play/Pause, Restart, and Loop to preview with Motion Engine. Restart returns to zero and pauses.
 5. Use **File → Download Project** for portable backups and **Load Project** to reopen them. Autosave and Save Now use browser local storage.
 6. Open **Export** to copy GSAP code or a React component scaffold. React output requires you to supply the SVG markup.
 
@@ -45,15 +45,18 @@ Autosave, restoration, Save Now, and Clear Autosave use only `motion-editor:last
 - `src/App.jsx`: application state, orchestration, derived timeline lifecycle, and persistence.
 - `src/components/`: editor panels and controls.
 - `src/hooks/`: stage authoring interactions.
-- `src/utility/`: SVG parsing, model utilities, GSAP builder, and exporters.
+- `src/utility/`: SVG parsing, model utilities, retained legacy GSAP builder, and exporters. Preview calls Motion Engine directly from `App`.
 - `src/styles/`: global and component SCSS.
 - `public/`: static assets, local fonts, and sample artwork.
-- `DOCS/`: inherited historical specification and design references, not the active migration plan.
+- `DOCS/`: migration verification notes plus inherited historical specification and design references. The active migration plan is in `ROADMAP.md`.
 
 Imported SVG content stays separate from editor overlays and controls. Preserve model, parsing, selection, timeline, persistence, and export contracts during migration. See [ARCHITECTURE.md](ARCHITECTURE.md), [AGENTS.md](AGENTS.md), and [ROADMAP.md](ROADMAP.md) for implementation boundaries and migration planning.
 
 ## Current limitations
 
+- T02 leaves GSAP-based stage dragging, nudging, and transform-keyframe capture for T03. GSAP can read original or cached transform values instead of the engine-rendered position; do not treat these authoring workflows as migrated or accepted yet.
+- Motion Engine composes target transforms with the imported baseline; GSAP replaces decomposed transform channels. Existing transformed-target projects and unchanged GSAP/React exports can therefore render differently.
+- Path playback requires matching normalized subpath counts, cubic segment counts, and closure. Unsupported models stop preview with an error; their project data remains available for editing/export, without a GSAP fallback.
 - Stage zoom/pan, timeline zoom, and undo/redo are unavailable.
 - SVG import sanitizes content. External/embedded images and fonts, stylesheets, SMIL, `foreignObject`, DTD/entity declarations, CSS variables/escapes, and inline `!important` priority are unsupported. Text and `use` can render but have no timeline-authoring controls.
 - Path editing moves existing anchors only; drawing paths, adding/removing anchors, and editing Bézier handles are unsupported.

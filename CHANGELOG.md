@@ -4,6 +4,8 @@ Application releases use pre-1.0 Semantic Versioning. Project-file schema versio
 
 ## Motion Editor 0.1.0 — unreleased
 
+- T02 (DONE; finalization approved 2026-11-08): replace preview timeline construction and transport with Motion Engine's timeline, playback controller, and SVG adapter. Restore baselines on rebuild, preserve model time, and report unsupported playback without a GSAP fallback.
+- Keep schema v1, dependencies, UI, GSAP authoring, and exports unchanged. Build and focused browser playback checks pass; lint retains two existing warnings. Remaining transform-authoring and path compatibility limits are documented in [T02 verification](DOCS/T02-VERIFICATION.md).
 - T01 foundation: rename the application and package to Motion Editor, retain existing UI and icon artwork, and add the local Motion Engine dependency.
 - Isolate autosave under `motion-editor:last-session:v1` without migrating GSAP Editor storage.
 - Document migration boundaries; GSAP preview, path behavior, exports, and project schema version 1 remain unchanged.

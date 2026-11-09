@@ -1,6 +1,6 @@
 # Architecture
 
-Motion Editor retains the imported GSAP implementation during T01. The local `motion-engine` dependency is available for later migration tasks; it is not yet used for playback or export. The sibling engine and original editor projects are read-only.
+Motion Editor uses the local `motion-engine` dependency for preview in T02. GSAP remains for stage authoring, MorphSVG path editing, and exports until T03–T05. The sibling engine and original editor projects are read-only. See [T02 verification](DOCS/T02-VERIFICATION.md) for the remaining integration conflicts.
 
 ## Core model
 
@@ -10,11 +10,11 @@ The animation model is the source of truth. It is a serializable version 1 objec
 
 Fresh sessions and raw SVG imports create an empty model with a new id, a neutral label, a 2-second duration, and zero tracks. The File dialog reuses `SvgImporter` to replace artwork and reset animation authoring. Sample artwork follows that same path. Project JSON and autosave restoration retain their saved models unchanged.
 
-GSAP state is derived from the model. `buildGsapTimeline` creates a paused GSAP timeline from tracks, establishes each first keyframe at its authored time, adds zero-duration final-value clamps, and pads it to the model duration. Single-keyframe tracks hold that value from their keyframe time onward; before the first keyframe, the imported SVG baseline applies. It is playback state, not persisted authoring state.
+Motion Engine state is derived from the model. `createTimeline` validates and snapshots tracks; `createPlaybackController` schedules evaluation; `createSVGAdapter` applies snapshots to the mounted imported SVG. Single-keyframe tracks hold that value from their keyframe time onward; before the first keyframe, the imported SVG baseline applies. Model duration includes time after the last keyframe and timelines with no animated tracks. Preview state is not persisted authoring state. The legacy `buildGsapTimeline` utility remains unused pending dependency cleanup.
 
 ## Application shell
 
-`src/main.jsx` mounts `App` in React Strict Mode. `src/App.jsx` owns imported SVG state, selection state, animation-model updates, keyframe and track selection, scrub position, drag state, modal state, autosave, project restoration, and GSAP timeline lifecycle.
+`src/main.jsx` mounts `App` in React Strict Mode. `src/App.jsx` owns imported SVG state, selection state, animation-model updates, keyframe and track selection, scrub position, drag state, modal state, autosave, project restoration, and Motion Engine preview lifecycle.
 
 The primary UI responsibilities are:
 
@@ -39,7 +39,7 @@ The imported SVG is cloned to add the root ref and pointer handler. Path anchor 
 
 Timeline derives the current target from keyframe/track focus, falling back to `selectedId`. The parent shape keeps a subtle highlight while its active property receives stronger emphasis, including during keyframe selection. No extra selection state is stored. Unselected keyframe diamonds are neutral gray with lighter neutral hover feedback; selected diamonds retain their cyan treatment.
 
-New keyframes capture the current GSAP properties from the selected target; Path keyframes read the rendered `d` attribute, including between MorphSVG keyframes. Duplicate track/property combinations and duplicate keyframe times are rejected. The timeline displays only tracks for shapes present in the shape list.
+New transform keyframes still capture GSAP properties from the selected target; these reads can be stale or differ from engine-rendered values and are deferred to T03. Path keyframes read the rendered `d` attribute, including engine-interpolated paths. Duplicate track/property combinations and duplicate keyframe times are rejected. The timeline displays only tracks for shapes present in the shape list.
 
 `src/utility/authorPosition.js` provides the immutable position upsert used by stage dragging, keyboard nudging, and normal position-keyframe creation. It creates a missing position track, replaces the value at an existing time (retaining easing), or inserts a sorted keyframe. Stage edits and normal keyframe creation share the timeline's 30fps snapping and duration clamp. Repeated nudges resolve against the latest model value through React's functional state update. `App` then selects the target, position track, and committed keyframe. Clicking without movement does not author animation data.
 
@@ -49,7 +49,7 @@ Timeline layer selection focuses the existing canvas so arrow-key authoring is a
 
 ## Path authoring foundation
 
-`shapeList.type` gates Path creation and stage editing to identified `<path>` targets. The GSAP builder also ignores Path tracks targeting non-path DOM elements. Duplicate target/property tracks use existing prevention rules. Path rows reuse normal Timeline keyframe selection, dragging, snapping, deletion, and keyboard shortcuts. The Inspector presents a Path geometry hint in place of a scalar input.
+`shapeList.type` gates Path creation and stage editing to identified `<path>` targets. Preview reports an error for animated Path tracks targeting non-path elements or incompatible topology. Duplicate target/property tracks use existing prevention rules. Path rows reuse normal Timeline keyframe selection, dragging, snapping, deletion, and keyboard shortcuts. The Inspector presents a Path geometry hint in place of a scalar input.
 
 `pathGeometry.js` uses the freely available MorphSVGPlugin from installed GSAP 3.13: `stringToRawPath()` converts geometry to cubic subpaths and `rawPathToString()` serializes edits. There is no custom SVG parser or interpolator. `pathAnchors()` exposes existing anchors; `movePathAnchor()` translates an anchor and adjacent incoming/outgoing controls. A closed seam moves both copies of the endpoint and their controls. Multiple subpaths remain separate.
 
@@ -61,9 +61,11 @@ No Bézier handle UI, anchor insertion/deletion, new-path drawing, primitive con
 
 ## Preview, timeline rebuild, and scrubbing
 
-When the imported SVG tree or animation model changes, `App` reverts the prior GSAP context to the imported SVG baseline, reapplies any time-zero model values, builds a new paused timeline, and restores the current scrub progress. Reverting preserves SVG-authored transforms instead of clearing their attributes. A layout effect and scrub ref keep rebuilding independent from ordinary scrubbing without a stale closure. The model duration is the editor timebase; `scrub` is a normalized value from 0 through 1. Scrubbing sets `timeline.progress(scrub)`.
+When the imported SVG tree or animation model changes, `App` suppresses callbacks from the retired controller, pauses it, and resets its SVG adapter before capturing a new baseline. It creates a new engine timeline/controller/adapter, seeks the retained playhead, and resumes if playback was active and is before the end. A layout effect and scrub ref keep rebuilding independent from ordinary scrubbing without a stale closure. The model duration is the editor timebase; `scrub` is a normalized value from 0 through 1. Scrubbing calls `controller.seek(scrub * duration)`, while duration changes retain absolute seconds and clamp to the new end.
 
-`captureSvgPlaybackState` pairs context reversion with restoration of SVG attributes and GSAP's parsed transform cache. This retains origin/offset bookkeeping for combined rotation, scale, and position animation; context reversion alone can leave translation drift. Snapshots also restore `d`, MorphSVG's `data-original` attribute, and its transient RawPath reference so rebuilds cannot adopt a morphed baseline. These snapshots are transient playback baselines, not another animation model. The same helper restores a cancelled drag preview.
+The SVG adapter composes each snapshot with its captured baseline and restores omitted properties when seeking before their first keyframe. Reset restores original inline declarations/priorities and path data. GSAP no longer initializes or resets preview state. `captureSvgPlaybackState` remains in the stage-authoring hook to restore its transient GSAP previews, including transform-cache and MorphSVG bookkeeping; replacing that authoring path is T03/T04 work.
+
+Controller updates drive the playhead and Play/Pause state directly, including endpoint completion. Loop uses `setLoop`; Restart preserves the existing paused return to zero. Invalid models or unsupported paths stop preview with a notification, without conversion or fallback. A valid rebuild recovers. Engine target-baseline composition differs from GSAP channel replacement, so transformed-target projects and unchanged exports can differ; GSAP property capture/nudging also remain incompatible in concrete cases documented in the T02 report.
 
 Pointer dragging starts from the current GSAP X/Y and converts screen movement through the inverse parent screen CTM. A 3px activation threshold matches timeline keyframe dragging. A separate transient GSAP context previews only X/Y, preserving rotation, scale, skew, and ancestor transforms. Pointer release reverts the preview and commits the final position to the model at the pointer-down playhead time; raw pointer moves do not rebuild the timeline. Pointer capture tracks the initiating pointer. Cancellation, lost capture, Escape, window blur, model/SVG replacement, scrubbing, and unmount discard the preview. Returning to the start without a net position change does not author a keyframe. The stored original SVG source is never rewritten by movement.
 
@@ -90,7 +92,7 @@ Shape and property rows share a Grid layout: label/content, a 36px action cell, 
 Every `.timeline__time-area` has the same left/right endpoint gutter after the control column, using the full remaining timeline width. The gutter is the greater of 32px or half the measured duration-label width plus 8px. Labels always center on their ticks. ResizeObserver tracks the duration label's font/size and the usable ruler width for tick density. Markers use time/duration percentages within that box; the ruler and full-height row playhead inherit one percentage from the timeline. Pointer seeking and drag commits measure the ruler box through `getBoundingClientRect()`. There is no independent row time scale. Hash positions derive from the same tick fractions. Figma's fixed 160px sample units become a density target while actual duration remains fitted to the available width. The v0.2.0 lane `overflow: hidden` boundary workaround is removed; both 14px endpoint markers fit inside the gutters. Frame snapping, model time storage, keyboard Position authoring, and Inspector time editing retain their existing semantics. These shared bounds remain the place to add future zoom/pan; neither is implemented here.
 
 - Preserve `App` state ownership and its existing callbacks.
-- Preserve the animation model as the source of truth, plus GSAP timeline rebuilding and scrubbing behavior.
+- Preserve the animation model as the source of truth, plus derived timeline rebuilding and scrubbing behavior.
 - Preserve SVG import, selection, project persistence, and export behavior.
 - Use CSS Grid for major editor regions when appropriate and Flexbox for toolbars, rows, and grouped controls.
 - Do not reproduce Figma coordinates with unnecessary absolute positioning. Absolute positioning remains appropriate for editor overlays such as playheads, keyframes, selection boxes, handles, and canvas controls.
@@ -104,7 +106,7 @@ The current visual slice includes the full-window application frame, top toolbar
 
 ## Invariants and redesign boundaries
 
-- Keep the animation model as the source of truth and GSAP as derived playback state.
+- Keep the animation model as the source of truth and Motion Engine as derived preview state.
 - Keep imported SVG content separate from the editor UI and overlays.
 - Preserve the model timebase and immutable model-update flow.
 - Preserve supported-property semantics and project JSON version 1 unless a deliberate migration is designed.

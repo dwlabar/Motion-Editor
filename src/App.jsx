@@ -3,6 +3,9 @@
 // -----------------------------------------------------------------------------
 // Version History
 //
+// Motion Editor 0.1.0 T02
+// - Derive preview and transport state from Motion Engine; restore adapters on rebuild.
+//
 // v0.2.1
 // - Restore the Figma shell while retaining model-driven authoring behavior.
 //
@@ -115,13 +118,13 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, cloneElement } from 'react'
 import { gsap } from 'gsap'
+import { createTimeline, createPlaybackController, createSVGAdapter } from 'motion-engine'
 import './styles/components/_SvgEditor.scss'
 import SvgImporter from './components/SvgImporter'
 import Timeline from './components/Timeline'
 import Inspector from './components/Inspector'
 import TransportControls from './components/TransportControls'
 import { EASING_PRESETS, normalizeKeyframeEasing } from './utility/keyframeEasing'
-import { buildGsapTimeline } from './utility/buildGsapTimeline'
 import ExportPanel from './components/ExportPanel'
 import TopBar from './components/TopBar'
 import AppModal from './components/AppModal'
@@ -129,7 +132,6 @@ import FilePanel from './components/FilePanel'
 import { parseSvgTextToJsxAndShapes } from './utility/parseSvgToJsx'
 import { authorPosition, getAuthoringTime } from './utility/authorPosition'
 import { isEditorControl, readPosition, useStagePositionAuthoring } from './hooks/useStagePositionAuthoring'
-import { captureSvgPlaybackState } from './utility/captureSvgPlaybackState'
 import { authorPath } from './utility/authorPath'
 import { isPathTarget, readPath } from './utility/pathGeometry'
 import { useStagePathAuthoring } from './hooks/useStagePathAuthoring'
@@ -149,7 +151,7 @@ function App() {
   const svgRef = useRef(null)
   const stageContentRef = useRef(null)
   const selectionOverlayRef = useRef(null)
-  const timelineRef = useRef(null)
+  const playbackRef = useRef(null)
   const playingRef = useRef(false)
   const loopingRef = useRef(false)
   const autosaveTimerRef = useRef(null)
@@ -166,6 +168,7 @@ function App() {
   const [scrub, setScrub] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isLooping, setIsLooping] = useState(false)
+  const [playbackError, setPlaybackError] = useState(null)
   const [selectedKeyframe, setSelectedKeyframe] = useState(null)
 
   // Track-level selection (authoring focus)
@@ -178,7 +181,7 @@ function App() {
   }, [])
 
   const pausePlayback = useCallback(() => {
-    timelineRef.current?.pause()
+    playbackRef.current?.pause()
     playingRef.current = false
     setIsPlaying(false)
   }, [])
@@ -186,32 +189,29 @@ function App() {
   function handleScrubChange(progress) {
     pausePlayback()
     scrubRef.current = progress
-    timelineRef.current?.progress(progress)
+    playbackRef.current?.seek(progress * timelineDuration)
     setScrub(progress)
   }
 
   function handlePlayPause() {
-    const tl = timelineRef.current
-    if (!tl) return
+    const playback = playbackRef.current
+    if (!playback) {
+      if (playbackError) notify({ variant: 'error', message: playbackError })
+      return
+    }
     if (playingRef.current) {
       pausePlayback()
       return
     }
-    if (tl.progress() >= 1) tl.totalTime(0)
-    playingRef.current = true
-    setIsPlaying(true)
-    tl.play()
+    if (playback.state.time >= playback.state.duration) playback.restart()
+    else playback.play()
   }
 
   function handleLoopChange() {
     const next = !loopingRef.current
     loopingRef.current = next
     setIsLooping(next)
-    const tl = timelineRef.current
-    if (!tl) return
-    // Reset the repeat iteration while retaining the current cycle's time.
-    const time = tl.time()
-    tl.repeat(next ? -1 : 0).totalTime(time, true)
+    playbackRef.current?.setLoop(next)
   }
 
   function handleStagePointerDown(event) {
@@ -259,7 +259,7 @@ function App() {
     if (duration === timelineDuration) return
 
     // Preserve absolute seconds, clamping only when the playhead exceeds the new end.
-    // React batches these updates; the scrub ref is refreshed before GSAP rebuilds.
+    // React batches these updates; the scrub ref is refreshed before playback rebuilds.
     setScrub(Math.min(currentTime, duration) / duration)
     setAnimationModel(model => ({ ...model, duration }))
   }
@@ -787,50 +787,7 @@ function App() {
   }
 
   // ---------------------------------------------------------------------------
-  // Phase 2 Step 5 fix: Clear animated props and apply model t=0 state
-  // ---------------------------------------------------------------------------
-  function resetSvgToModelStart(model) {
-    const svgEl = svgRef.current
-    if (!svgEl) return
-
-    // Clear only what we currently animate in this project.
-    // This prevents mid-scrub styles from becoming the new baseline.
-    // The previous GSAP context now reverts these properties to the imported
-    // SVG baseline, including authored transforms, before this function runs.
-
-      ; (model.tracks || []).forEach(track => {
-        const el = svgEl.getElementById(track.targetId)
-        if (!el) return
-
-        const kfAtZero = (track.keyframes || []).find(kf => Number(kf.time) === 0)
-        if (!kfAtZero) return
-
-        if (track.property === 'path' && el.localName === 'path') {
-          gsap.set(el, { morphSVG: kfAtZero.value })
-        }
-
-        if (track.property === 'position') {
-          const xVal = kfAtZero.value && typeof kfAtZero.value.x === 'number' ? kfAtZero.value.x : 0
-          const yVal = kfAtZero.value && typeof kfAtZero.value.y === 'number' ? kfAtZero.value.y : 0
-          gsap.set(el, { x: xVal, y: yVal })
-        }
-
-        if (track.property === 'opacity') {
-          gsap.set(el, { opacity: kfAtZero.value })
-        }
-
-        if (track.property === 'scale') {
-          gsap.set(el, { scale: kfAtZero.value, transformOrigin: 'center' })
-        }
-
-        if (track.property === 'rotation') {
-          gsap.set(el, { rotation: kfAtZero.value, transformOrigin: 'center' })
-        }
-      })
-  }
-
-  // ---------------------------------------------------------------------------
-  // Build / rebuild GSAP timeline (playback only)
+  // Build / rebuild Motion Engine preview (playback only)
   // ---------------------------------------------------------------------------
   useLayoutEffect(() => {
     scrubRef.current = scrub
@@ -839,39 +796,81 @@ function App() {
   useLayoutEffect(() => {
     if (!svgTree || !svgRef.current) return
 
-    const targets = [...new Set((animationModel.tracks || []).map(track => track.targetId))]
-      .map(id => svgRef.current.getElementById(id)).filter(Boolean)
-    const restoreBaseline = captureSvgPlaybackState(targets)
-    const context = gsap.context(() => {
-      resetSvgToModelStart(animationModel)
-      const tl = buildGsapTimeline(animationModel, svgRef, () => {
-        const progress = timelineRef.current?.progress() ?? 0
-        scrubRef.current = progress
-        setScrub(progress)
-        refreshOverlay()
-      })
-      timelineRef.current = tl
-      tl.repeat(loopingRef.current ? -1 : 0)
-      tl.eventCallback('onComplete', pausePlayback)
-      tl.pause(0)
-      tl.progress(scrubRef.current, true)
-      if (playingRef.current && scrubRef.current < 1) tl.play()
-      else if (scrubRef.current >= 1) pausePlayback()
-    }, svgRef)
+    const resume = playingRef.current
+    let active = true
+    let playback
+    let adapter
 
-    refreshOverlay()
-    return () => {
-      context.revert()
-      restoreBaseline()
-      timelineRef.current = null
+    const dispose = () => {
+      // pause() emits once; suppress that callback before restoring the baseline.
+      // A retired controller must never update React or render onto a new SVG.
+      active = false
+      playback?.pause()
+      adapter?.reset()
+      if (playbackRef.current === playback) playbackRef.current = null
     }
-  }, [svgTree, animationModel, refreshOverlay, pausePlayback])
+
+    const reportError = error => {
+      dispose()
+      playingRef.current = false
+      setIsPlaying(false)
+      const message = `Preview unavailable: ${error.message}`
+      setPlaybackError(message)
+      notify({ variant: 'error', message })
+      refreshOverlay()
+    }
+
+    try {
+      const timeline = createTimeline(animationModel)
+      const targets = new Map()
+      for (const track of animationModel.tracks) {
+        if (!track.keyframes.length) continue
+        const element = svgRef.current.getElementById(track.targetId)
+        if (!element) throw new Error(`SVG target "${track.targetId}" was not found.`)
+        if (track.property === 'path' && element.localName !== 'path') {
+          throw new Error(`Path playback requires a <path> target: "${track.targetId}".`)
+        }
+        targets.set(track.targetId, element)
+      }
+      // The previous effect resets its adapter before these baselines are captured.
+      // Seeking before a first keyframe also restores omitted properties automatically.
+      adapter = createSVGAdapter(targets)
+      playback = createPlaybackController(timeline, {
+        loop: loopingRef.current,
+        onUpdate: (time, values) => {
+          if (!active) return
+          try {
+            adapter.apply(values)
+          } catch (error) {
+            reportError(error)
+            return
+          }
+          const progress = timeline.duration > 0 ? time / timeline.duration : 0
+          scrubRef.current = progress
+          setScrub(progress)
+          playingRef.current = playback.state.playing
+          setIsPlaying(playback.state.playing)
+          refreshOverlay()
+        }
+      })
+      playbackRef.current = playback
+      setPlaybackError(null)
+      playback.seek(scrubRef.current * timeline.duration)
+      if (active && resume && scrubRef.current < 1) playback.play()
+    } catch (error) {
+      // Unsupported models (including incompatible paths) keep their source data
+      // available for editing/export. Preview stops; there is no GSAP fallback.
+      reportError(error)
+    }
+
+    return dispose
+  }, [svgTree, animationModel, refreshOverlay, notify])
 
   // ---------------------------------------------------------------------------
-  // Scrub → GSAP
+  // Scrub → Motion Engine
   // ---------------------------------------------------------------------------
   // User scrubs seek directly in handleScrubChange. Playback updates React's
-  // playhead from GSAP without seeking back on every animation frame.
+  // playhead from the controller without seeking back on every animation frame.
 
   // ---------------------------------------------------------------------------
   // Dragging Logic (shared stage-authoring hook above)
