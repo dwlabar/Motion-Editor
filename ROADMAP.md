@@ -8,12 +8,19 @@ Application version 0.1.0 and project/model schema version 1 are independent. Th
 | --- | --- | --- | --- |
 | T01 | Project Foundation | DONE | Application identity, local Motion Engine dependency, independent storage, documentation, and roadmap. |
 | T02 | Timeline and Playback Integration | DONE | Replace GSAP timeline construction, playback, scrubbing, looping, and SVG rendering with Motion Engine. Preserve existing transport controls and UI behavior. |
-| T03 | Stage Authoring Integration | NEXT | Replace GSAP-dependent position dragging, nudging, property reading, inspector updates, and keyframe capture. Preserve existing editing workflows. |
-| T04 | SVG Path Integration | PLANNED | Replace MorphSVG dependencies with Motion Engine path geometry APIs. Preserve path handles, anchor editing, and compatible path animation. |
+| T03 | Stage Authoring Integration | DONE | Replace GSAP-dependent position dragging, nudging, property reading, inspector updates, and keyframe capture. Preserve existing editing workflows. |
+| T04 | SVG Path Integration | NEXT | Replace MorphSVG dependencies with Motion Engine path geometry APIs. Preserve path handles, anchor editing, and compatible path animation. |
 | T05 | Animation Export Integration | PLANNED | Replace GSAP-based animation and React exports with Motion Engine-based outputs. Preserve existing export workflows. |
 | T06 | Dependency Cleanup and Release | PLANNED | Remove remaining GSAP dependencies, update documentation, and perform focused acceptance testing of existing editor functionality. |
 
 This approved roadmap replaces the inherited GSAP development plan. T02–T06 are not implemented as part of T01.
+
+## T03 completion — 2026-11-09
+
+- Capture position, rotation, scale, and opacity from Motion Engine evaluation. Missing transform channels use neutral motion values; missing opacity uses the imported baseline.
+- Position dragging previews through the playback SVG adapter, preserving baseline transforms and other evaluated channels. Parent CTM conversion, cancellation, repeated nudges, inspector edits, and 30fps snapping remain operational.
+- Focused browser authoring checks pass. See [T03 verification](DOCS/T03-VERIFICATION.md). Finalization approved by the user on 2026-11-09.
+- Application version remains 0.1.0 and schema remains 1. T04 path authoring and T05 exports remain unchanged.
 
 ## T01 completion
 

@@ -117,7 +117,6 @@
 // -----------------------------------------------------------------------------
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, cloneElement } from 'react'
-import { gsap } from 'gsap'
 import { createTimeline, createPlaybackController, createSVGAdapter } from 'motion-engine'
 import './styles/components/_SvgEditor.scss'
 import SvgImporter from './components/SvgImporter'
@@ -131,7 +130,7 @@ import AppModal from './components/AppModal'
 import FilePanel from './components/FilePanel'
 import { parseSvgTextToJsxAndShapes } from './utility/parseSvgToJsx'
 import { authorPosition, getAuthoringTime } from './utility/authorPosition'
-import { isEditorControl, readPosition, useStagePositionAuthoring } from './hooks/useStagePositionAuthoring'
+import { isEditorControl, useStagePositionAuthoring } from './hooks/useStagePositionAuthoring'
 import { authorPath } from './utility/authorPath'
 import { isPathTarget, readPath } from './utility/pathGeometry'
 import { useStagePathAuthoring } from './hooks/useStagePathAuthoring'
@@ -152,6 +151,7 @@ function App() {
   const stageContentRef = useRef(null)
   const selectionOverlayRef = useRef(null)
   const playbackRef = useRef(null)
+  const authoringRef = useRef(null)
   const playingRef = useRef(false)
   const loopingRef = useRef(false)
   const autosaveTimerRef = useRef(null)
@@ -275,7 +275,7 @@ function App() {
   const refreshOverlay = useCallback(() => setDragTick(tick => tick + 1), [])
   useDocumentFit({ svgRef, svgTree, stageContentRef, onLayoutChange: refreshOverlay })
   const { handlePointerDown, nudge } = useStagePositionAuthoring({
-    svgRef, svgTree, animationModel, currentTime, selectedId, nudgeAmount,
+    svgRef, svgTree, animationModel, currentTime, selectedId, nudgeAmount, activeModal, authoringRef,
     onSelectTarget: handleTargetSelect,
     onAuthorPosition: commitPosition,
     onPreviewChange: refreshOverlay
@@ -533,7 +533,8 @@ function App() {
 
     if (safeProperty === 'path' && !isPathTarget(shapeList, safeTrackId)) return
     const el = svgRef.current.getElementById(safeTrackId)
-    const capturedValue = captureCurrentValueForTrack(el, safeProperty)
+    if (!el) return
+    const capturedValue = safeProperty === 'path' ? readPath(el) : authoringRef.current?.read(safeTrackId, safeProperty) ?? null
     if (capturedValue === null) return
 
     setAnimationModel(prevModel => {
@@ -805,6 +806,7 @@ function App() {
       // pause() emits once; suppress that callback before restoring the baseline.
       // A retired controller must never update React or render onto a new SVG.
       active = false
+      authoringRef.current = null
       playback?.pause()
       adapter?.reset()
       if (playbackRef.current === playback) playbackRef.current = null
@@ -822,7 +824,14 @@ function App() {
 
     try {
       const timeline = createTimeline(animationModel)
-      const targets = new Map()
+      // Include untracked selectable shapes so their first drag uses the same
+      // imported baseline as subsequent playback and model rebuilds.
+      const targets = new Map(shapeList
+        .map(shape => svgRef.current.getElementById(shape.id))
+        .filter(element => element && typeof element.getBBox === 'function')
+        .map(element => [element.id, element]))
+      const baselineOpacity = new Map([...targets].map(([id, element]) =>
+        [id, Number(getComputedStyle(element).opacity)]))
       for (const track of animationModel.tracks) {
         if (!track.keyframes.length) continue
         const element = svgRef.current.getElementById(track.targetId)
@@ -853,6 +862,29 @@ function App() {
           refreshOverlay()
         }
       })
+      authoringRef.current = {
+        read(targetId, property) {
+          const value = timeline.evaluate(playback.state.time)
+            .find(item => item.targetId === targetId && item.property === property)?.value
+          if (value !== undefined) return value
+          // Transform channels are motion relative to the imported baseline.
+          if (property === 'position') return { x: 0, y: 0 }
+          if (property === 'rotation') return 0
+          if (property === 'scale') return 1
+          if (property === 'opacity') return baselineOpacity.get(targetId) ?? 1
+          return null
+        },
+        previewPosition(targetId, position) {
+          if (!active) return
+          const values = timeline.evaluate(playback.state.time)
+            .filter(item => item.targetId !== targetId || item.property !== 'position')
+          adapter.apply([...values, { targetId, property: 'position', value: position }])
+        },
+        restore() {
+          // A scrub may already have sought a new time before cancellation runs.
+          if (active) adapter.apply(timeline.evaluate(playback.state.time))
+        }
+      }
       playbackRef.current = playback
       setPlaybackError(null)
       playback.seek(scrubRef.current * timeline.duration)
@@ -864,7 +896,7 @@ function App() {
     }
 
     return dispose
-  }, [svgTree, animationModel, refreshOverlay, notify])
+  }, [svgTree, shapeList, animationModel, refreshOverlay, notify])
 
   // ---------------------------------------------------------------------------
   // Scrub → Motion Engine
@@ -1153,33 +1185,6 @@ function countKeyframeTimes(keyframes) {
     counts[key] += 1
   })
   return counts
-}
-
-function captureCurrentValueForTrack(el, property) {
-  if (!el) return null
-
-  if (property === 'path') return readPath(el)
-
-  if (property === 'position') {
-    return readPosition(el)
-  }
-
-  if (property === 'opacity') {
-    const op = Number(gsap.getProperty(el, 'opacity'))
-    return Number.isFinite(op) ? op : 1
-  }
-
-  if (property === 'scale') {
-    const sc = Number(gsap.getProperty(el, 'scale'))
-    return Number.isFinite(sc) ? sc : 1
-  }
-
-  if (property === 'rotation') {
-    const rot = Number(gsap.getProperty(el, 'rotation'))
-    return Number.isFinite(rot) ? rot : 0
-  }
-
-  return null
 }
 
 function isTextEditingTarget(targetEl) {

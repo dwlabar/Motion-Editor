@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
-import { gsap } from 'gsap'
-import { captureSvgPlaybackState } from '../utility/captureSvgPlaybackState'
 
 const DRAG_THRESHOLD = 3 // Screen pixels, matching timeline keyframe dragging.
 const DIRECTIONS = {
@@ -8,15 +6,6 @@ const DIRECTIONS = {
   ArrowRight: [1, 0],
   ArrowUp: [0, -1],
   ArrowDown: [0, 1]
-}
-
-export function readPosition(element) {
-  const x = Number(gsap.getProperty(element, 'x'))
-  const y = Number(gsap.getProperty(element, 'y'))
-  return {
-    x: Number.isFinite(x) ? x : 0,
-    y: Number.isFinite(y) ? y : 0
-  }
 }
 
 export function isEditorControl(target) {
@@ -30,7 +19,7 @@ export function isEditorControl(target) {
 }
 
 export function useStagePositionAuthoring({
-  svgRef, svgTree, animationModel, currentTime, selectedId, nudgeAmount,
+  svgRef, svgTree, animationModel, currentTime, selectedId, nudgeAmount, activeModal, authoringRef,
   onSelectTarget, onAuthorPosition, onPreviewChange
 }) {
   const dragRef = useRef(null)
@@ -39,9 +28,8 @@ export function useStagePositionAuthoring({
     const drag = dragRef.current
     if (!drag) return
     dragRef.current = null
-    // Revert transient GSAP state before the authoritative model rebuild.
-    drag.preview.revert()
-    drag.restore()
+    // Restore the evaluated frame before the authoritative model rebuild.
+    drag.authoring.restore()
     if (drag.element.hasPointerCapture?.(drag.pointerId)) {
       drag.element.releasePointerCapture(drag.pointerId)
     }
@@ -56,6 +44,10 @@ export function useStagePositionAuthoring({
   const moveDrag = useCallback(event => {
     const drag = dragRef.current
     if (!drag || event.pointerId !== drag.pointerId) return
+    if (event.type === 'pointermove' && !(event.buttons & 1)) {
+      finishDrag()
+      return
+    }
     if (!drag.active && Math.hypot(event.clientX - drag.clientX, event.clientY - drag.clientY) < DRAG_THRESHOLD) return
     const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(drag.parentInverse)
     const position = {
@@ -65,12 +57,12 @@ export function useStagePositionAuthoring({
     if (!Number.isFinite(position.x) || !Number.isFinite(position.y)) return
     drag.active = true
     drag.position = position
-    // GSAP changes only translation; rotation, scale, skew and parent matrices
-    // remain intact, using the same x/y semantics as playback and exports.
-    drag.preview.add(() => gsap.set(drag.element, position))
+    // Engine translation is in parent SVG space; the adapter retains baseline
+    // transforms and the evaluated rotation, scale, opacity and path channels.
+    drag.authoring.previewPosition(drag.id, position)
     onPreviewChange()
     event.preventDefault()
-  }, [onPreviewChange])
+  }, [finishDrag, onPreviewChange])
 
   useEffect(() => {
     const pointerUp = event => {
@@ -100,10 +92,14 @@ export function useStagePositionAuthoring({
   }, [finishDrag, moveDrag])
 
   // A load, scrub, model edit or unmount cancels an in-flight preview.
-  useLayoutEffect(() => () => finishDrag(), [svgTree, animationModel, currentTime, finishDrag])
+  useLayoutEffect(() => () => finishDrag(), [svgTree, animationModel, currentTime, activeModal, finishDrag])
+
+  useLayoutEffect(() => {
+    if (dragRef.current && dragRef.current.id !== selectedId) finishDrag()
+  }, [selectedId, finishDrag])
 
   const handlePointerDown = event => {
-    if (event.target.closest?.('.svg-editor__path-handles')) return
+    if (activeModal || event.target.closest?.('.svg-editor__path-handles')) return
     if (event.button !== 0 || event.isPrimary === false || dragRef.current) return
     const svg = svgRef.current
     const element = event.target.closest('[id]')
@@ -112,6 +108,8 @@ export function useStagePositionAuthoring({
     svg.closest('.svg-editor')?.focus({ preventScroll: true })
     const matrix = element.parentNode.getScreenCTM?.()
     if (!matrix || Math.abs(matrix.a * matrix.d - matrix.b * matrix.c) < 1e-12) return
+    const authoring = authoringRef.current
+    if (!authoring) return
     const parentInverse = matrix.inverse()
     dragRef.current = {
       id: element.id,
@@ -122,9 +120,8 @@ export function useStagePositionAuthoring({
       clientY: event.clientY,
       parentInverse,
       startParent: new DOMPoint(event.clientX, event.clientY).matrixTransform(parentInverse),
-      startPosition: readPosition(element),
-      restore: captureSvgPlaybackState([element]),
-      preview: gsap.context(() => {}),
+      startPosition: authoring.read(element.id, 'position'),
+      authoring,
       active: false
     }
     element.setPointerCapture?.(event.pointerId)
@@ -136,7 +133,8 @@ export function useStagePositionAuthoring({
     if (!direction || !selectedId || dragRef.current || event.altKey || event.ctrlKey || event.metaKey) return false
     const element = svgRef.current?.getElementById(selectedId)
     if (!element) return false
-    const position = readPosition(element)
+    const position = authoringRef.current?.read(selectedId, 'position')
+    if (!position) return false
     const amount = nudgeAmount * (event.shiftKey ? 10 : 1)
     if (!Number.isFinite(amount) || amount <= 0) return false
     onAuthorPosition(selectedId, currentTime, previous => {
@@ -144,7 +142,7 @@ export function useStagePositionAuthoring({
       return { x: base.x + direction[0] * amount, y: base.y + direction[1] * amount }
     })
     return true
-  }, [selectedId, svgRef, currentTime, nudgeAmount, onAuthorPosition])
+  }, [selectedId, svgRef, currentTime, nudgeAmount, onAuthorPosition, authoringRef])
 
   return { handlePointerDown, nudge }
 }
