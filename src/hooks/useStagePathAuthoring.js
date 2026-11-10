@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
-import { movePathAnchor, pathToRawPath, readPath } from '../utility/pathGeometry'
+import { movePathAnchor, pathToGeometry, readPath } from '../utility/pathGeometry'
 
 export function useStagePathAuthoring({
-  svgRef, svgTree, animationModel, currentTime, targetId, activeModal,
+  svgRef, svgTree, animationModel, currentTime, targetId, activeModal, authoringRef,
   onAuthorPath, onPreviewChange
 }) {
   const dragRef = useRef(null)
@@ -13,6 +13,7 @@ export function useStagePathAuthoring({
     dragRef.current = null
     // Preview touches only d; restore before model rebuilding or scrub playback.
     drag.element.setAttribute('d', drag.original)
+    drag.authoring?.restore()
     if (drag.capture.hasPointerCapture?.(drag.pointerId)) {
       drag.capture.releasePointerCapture(drag.pointerId)
     }
@@ -33,7 +34,7 @@ export function useStagePathAuthoring({
     const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(drag.inverse)
     const dx = point.x - drag.start.x
     const dy = point.y - drag.start.y
-    const value = movePathAnchor(drag.rawPath, drag.anchor, dx, dy)
+    const value = movePathAnchor(drag.geometry, drag.anchor, dx, dy)
     if (!value) return
     drag.active = true
     drag.changed = Math.abs(dx) > 1e-9 || Math.abs(dy) > 1e-9
@@ -71,7 +72,7 @@ export function useStagePathAuthoring({
   }, [finishDrag, moveDrag])
 
   // Declared before App's playback effects so cancellation restores the old
-  // rendered value before GSAP reverts/rebuilds or seeks the next model state.
+  // rendered value before playback rebuilds or renders the next model state.
   useLayoutEffect(() => () => finishDrag(), [
     svgTree, animationModel, currentTime, targetId, activeModal, finishDrag
   ])
@@ -84,11 +85,12 @@ export function useStagePathAuthoring({
     const matrix = element?.getScreenCTM()
     if (!original || !matrix || Math.abs(matrix.a * matrix.d - matrix.b * matrix.c) < 1e-12) return
     const inverse = matrix.inverse()
-    const rawPath = pathToRawPath(original)
-    if (!rawPath[anchor.subpath]) return
+    const geometry = pathToGeometry(original)
+    if (!geometry[anchor.subpath]) return
     const capture = svgRef.current
     dragRef.current = {
-      id: targetId, element, capture, original, rawPath, anchor, inverse,
+      id: targetId, element, capture, original, geometry, anchor, inverse,
+      authoring: authoringRef.current,
       pointerId: event.pointerId, time: currentTime,
       clientX: event.clientX, clientY: event.clientY,
       start: new DOMPoint(event.clientX, event.clientY).matrixTransform(inverse),

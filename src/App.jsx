@@ -295,7 +295,7 @@ function App() {
   }, [shapeList, timelineDuration])
 
   const { handleAnchorPointerDown, isDragging: isPathDragging } = useStagePathAuthoring({
-    svgRef, svgTree, animationModel, currentTime, targetId: pathTargetId, activeModal,
+    svgRef, svgTree, animationModel, currentTime, targetId: pathTargetId, activeModal, authoringRef,
     onAuthorPath: commitPath, onPreviewChange: refreshOverlay
   })
 

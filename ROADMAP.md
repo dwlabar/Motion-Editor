@@ -9,11 +9,18 @@ Application version 0.1.0 and project/model schema version 1 are independent. Th
 | T01 | Project Foundation | DONE | Application identity, local Motion Engine dependency, independent storage, documentation, and roadmap. |
 | T02 | Timeline and Playback Integration | DONE | Replace GSAP timeline construction, playback, scrubbing, looping, and SVG rendering with Motion Engine. Preserve existing transport controls and UI behavior. |
 | T03 | Stage Authoring Integration | DONE | Replace GSAP-dependent position dragging, nudging, property reading, inspector updates, and keyframe capture. Preserve existing editing workflows. |
-| T04 | SVG Path Integration | NEXT | Replace MorphSVG dependencies with Motion Engine path geometry APIs. Preserve path handles, anchor editing, and compatible path animation. |
-| T05 | Animation Export Integration | PLANNED | Replace GSAP-based animation and React exports with Motion Engine-based outputs. Preserve existing export workflows. |
+| T04 | SVG Path Integration | REVIEW | Replace MorphSVG dependencies with Motion Engine path geometry APIs. Preserve path handles, anchor editing, and compatible path animation. |
+| T05 | Animation Export Integration | NEXT | Replace GSAP-based animation and React exports with Motion Engine-based outputs. Preserve existing export workflows. |
 | T06 | Dependency Cleanup and Release | PLANNED | Remove remaining GSAP dependencies, update documentation, and perform focused acceptance testing of existing editor functionality. |
 
 This approved roadmap replaces the inherited GSAP development plan. T02–T06 are not implemented as part of T01.
+
+## T04 review — 2026-11-09
+
+- Stage path authoring uses Motion Engine geometry APIs and sequential anchor indices.
+- Preserve CTM-correct dragging, live previews, cancellation, 30fps commits, and path capture. Scrub-during-drag cancellation restores the current evaluated frame.
+- Build and focused headless Edge checks pass; lint retains the two existing Hook warnings. See [T04 verification and limits](DOCS/T04-VERIFICATION.md).
+- Version remains 0.1.0 and schema remains 1. No dependency or export changes. T04 awaits review; T05 is next.
 
 ## T03 completion — 2026-11-09
 
